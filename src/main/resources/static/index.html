@@ -1,0 +1,285 @@
+ <!DOCTYPE html>
+<html>
+<head>
+    <title>Team Task Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            background: #1e3a8a;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #1e3a8a;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #eef2ff;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .dashboard-box {
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="navbar">
+    Team Task Manager
+</div>
+
+<div class="container">
+
+    <div class="dashboard">
+        <div class="dashboard-box">
+            Total Tasks
+            <div id="totalTasks">0</div>
+        </div>
+
+        <div class="dashboard-box">
+            Pending Tasks
+            <div id="pendingTasks">0</div>
+        </div>
+
+        <div class="dashboard-box">
+            Completed Tasks
+            <div id="completedTasks">0</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>User Registration</h2>
+
+        <input type="text" id="name" placeholder="Enter Name">
+        <input type="email" id="email" placeholder="Enter Email">
+        <input type="password" id="password" placeholder="Enter Password">
+
+        <select id="role">
+            <option value="ADMIN">ADMIN</option>
+            <option value="MEMBER">MEMBER</option>
+        </select>
+
+        <button onclick="registerUser()">Register User</button>
+    </div>
+
+    <div class="card">
+        <h2>Create Project</h2>
+
+        <input type="text" id="projectName" placeholder="Project Name">
+        <input type="text" id="projectDescription" placeholder="Project Description">
+
+        <button onclick="createProject()">Create Project</button>
+    </div>
+
+    <div class="card">
+        <h2>Create Task</h2>
+
+        <input type="text" id="taskTitle" placeholder="Task Title">
+        <input type="text" id="taskDescription" placeholder="Task Description">
+        <input type="number" id="userId" placeholder="Assign User ID">
+
+        <select id="taskStatus">
+            <option value="PENDING">PENDING</option>
+            <option value="COMPLETED">COMPLETED</option>
+        </select>
+
+        <button onclick="createTask()">Create Task</button>
+    </div>
+
+    <div class="card">
+        <h2>All Tasks</h2>
+
+        <ul id="taskList"></ul>
+    </div>
+
+</div>
+
+<script>
+
+const BASE_URL = 'http://localhost:8088';
+
+function registerUser() {
+
+    fetch(BASE_URL + '/users/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert('User Registered Successfully');
+        console.log(data);
+    });
+}
+
+function createProject() {
+
+    fetch(BASE_URL + '/projects/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            projectName: document.getElementById('projectName').value,
+            description: document.getElementById('projectDescription').value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert('Project Created Successfully');
+        console.log(data);
+    });
+}
+
+function createTask() {
+
+    fetch(BASE_URL + '/tasks/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            title: document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDescription').value,
+            status: document.getElementById('taskStatus').value,
+            assignedUser: {
+                id: document.getElementById('userId').value
+            }
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert('Task Created Successfully');
+        loadTasks();
+    });
+}
+
+function loadTasks() {
+
+    fetch(BASE_URL + '/tasks/all')
+    .then(res => res.json())
+    .then(data => {
+
+        const taskList = document.getElementById('taskList');
+
+        taskList.innerHTML = '';
+
+        let total = data.length;
+        let pending = 0;
+        let completed = 0;
+
+        data.forEach(task => {
+
+            if(task.status === 'PENDING') {
+                pending++;
+            }
+
+            if(task.status === 'COMPLETED') {
+                completed++;
+            }
+
+            const li = document.createElement('li');
+
+            li.innerHTML = `
+                <b>${task.title}</b><br>
+                ${task.description}<br>
+                Status: ${task.status}<br>
+                Assigned User ID: ${task.assignedUser ? task.assignedUser.id : 'N/A'}
+            `;
+
+            taskList.appendChild(li);
+        });
+
+        document.getElementById('totalTasks').innerText = total;
+        document.getElementById('pendingTasks').innerText = pending;
+        document.getElementById('completedTasks').innerText = completed;
+    });
+}
+
+loadTasks();
+
+</script>
+
+</body>
+</html>
+ 
